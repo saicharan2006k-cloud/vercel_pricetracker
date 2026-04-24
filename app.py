@@ -17,7 +17,11 @@ db = SQLAlchemy(app)
 # Run this in terminal before starting app:
 # Windows: set SERPAPI_KEY=your-key-here
 # Then access it here safely
-API_KEY = os.environ.get("SERPAPI_KEY", "0ac6ecaf39890a2970ac89e67f91e5093c81ae07eb9de5193bb04e98fed6caa2")  # ← fallback to hardcoded if not set
+API_KEY = os.environ.get("SERPAPI_KEY")
+
+if not API_KEY:
+    raise ValueError("SERPAPI_KEY environment variable not set")
+
 
 
 # ✅ Database Model
