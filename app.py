@@ -8,20 +8,31 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# ✅ Database setup
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////tmp/prices.db'
+# ✅ Database setup - use /tmp for Vercel serverless
+db_path = os.environ.get('VERCEL_TMPDIR', '/tmp')
+db_file = os.path.join(db_path, 'prices.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_file}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-
 # ✅ Keep API key in environment variable (more secure)
 # Run this in terminal before starting app:
 # Windows: set SERPAPI_KEY=your-key-here
 # Then access it here safely
 API_KEY = os.environ.get("SERPAPI_KEY")
 
+# For local development, you can set a fallback (remove in production)
 if not API_KEY:
-    raise ValueError("SERPAPI_KEY environment variable not set")
+    from pathlib import Path
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        with open(env_file) as f:
+            for line in f:
+                if line.strip().startswith("SERPAPI_KEY="):
+                    API_KEY = line.strip().split("=", 1)[1]
+                    break
 
+if not API_KEY:
+    print("⚠️  Warning: SERPAPI_KEY environment variable not set")
 
 
 # ✅ Database Model
