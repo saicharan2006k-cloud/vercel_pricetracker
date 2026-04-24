@@ -1,10 +1,15 @@
-from flask import Flask, jsonify, request, render_template
+
+import logging
+from flask import Flask, jsonify, request, render_template, abort
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from serpapi import GoogleSearch
 from datetime import datetime
 import os
 
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 CORS(app)
 
@@ -14,6 +19,7 @@ db_file = os.path.join(db_path, 'prices.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_file}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
 # ✅ Keep API key in environment variable (more secure)
 # Run this in terminal before starting app:
 # Windows: set SERPAPI_KEY=your-key-here
@@ -31,8 +37,11 @@ if not API_KEY:
                     API_KEY = line.strip().split("=", 1)[1]
                     break
 
-if not API_KEY:
-    print("⚠️  Warning: SERPAPI_KEY environment variable not set")
+def abort_if_no_api_key():
+    if not API_KEY:
+        logging.error("SERPAPI_KEY environment variable not set. Set it in Vercel dashboard or create a .env file locally.")
+        return render_template("error.html", message="SERPAPI_KEY environment variable not set. Set it in Vercel dashboard or create a .env file locally."), 500
+
 
 
 # ✅ Database Model
@@ -52,6 +61,8 @@ with app.app_context():
 
 @app.route("/")
 def home():
+    if not API_KEY:
+        return abort_if_no_api_key()
     return render_template("index.html")
 
 
@@ -130,6 +141,8 @@ def get_products(query):
 
 @app.route("/search")
 def search():
+    if not API_KEY:
+        return abort_if_no_api_key()
     query = request.args.get("q")
     if not query:
         return jsonify({"error": "Enter product name"}), 400
@@ -139,6 +152,8 @@ def search():
 
 @app.route("/history")
 def history():
+    if not API_KEY:
+        return abort_if_no_api_key()
     query = request.args.get("q", "").lower()
     title = request.args.get("title", "")
 
